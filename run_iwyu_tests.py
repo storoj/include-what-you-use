@@ -250,7 +250,7 @@ class OneIwyuTest(unittest.TestCase):
 
     iwyu_flags = self._iwyu_flags_map.get(filename, None)
     clang_flags = self._clang_flags_map.get(filename, [])
-    clang_flags.extend(self._include_map.get(filename, []))
+    clang_flags.extend(self._include_map.get(filename, ['-I .']))
     iwyu_test_util.TestIwyuOnRelativeFile(self, filename, files_to_check,
                                           iwyu_flags, clang_flags, verbose=True)
 
@@ -292,6 +292,7 @@ if __name__ == '__main__':
   if additional_args:
     iwyu_test_util.SetIwyuPath(additional_args[0])
 
-  RegisterFilesForTesting('tests/cxx', '*.cc')
-  RegisterFilesForTesting('tests/c', '*.c')
+  # RegisterFilesForTesting('tests/cxx', '*.cc')
+  # RegisterFilesForTesting('tests/c', '*.c')
+  RegisterFilesForTesting('tests', '*.m')
   unittest.main(argv=unittest_args)
