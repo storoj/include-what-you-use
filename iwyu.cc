@@ -3896,6 +3896,21 @@ class IwyuAstConsumer
     return Base::VisitUsingDirectiveDecl(decl);
   }
 
+  bool VisitObjCInterfaceDecl(clang::ObjCInterfaceDecl* interfaceDecl) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    if (const clang::ObjCInterfaceDecl* superClassDecl = 
+        interfaceDecl->getSuperClass()) {
+      ReportDeclUse(CurrentLoc(), superClassDecl);
+    }
+    return Base::VisitObjCInterfaceDecl(interfaceDecl);
+  }
+
+  bool VisitObjCImplementationDecl(clang::ObjCImplementationDecl* impDecl) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    ReportDeclUse(CurrentLoc(), impDecl->getClassInterface());
+    return Base::VisitObjCImplementationDecl(impDecl);
+  }
+
   // If you say 'typedef Foo Bar', then clients can use Bar however
   // they want without having to worry about #including anything
   // except you.  That puts you on the hook for all the #includes that
