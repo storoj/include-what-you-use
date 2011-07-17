@@ -1,0 +1,22 @@
+Investigate if IWYU produces forward declarations both in .h file and in .cc
+
+GetClassRedecls is empty set for ObjCInterfaceDecl, see what consequences it can cause
+GetDefinitionForClass. Looks like as result we set is_iwyu_violation_ to true and print unnecessary warning message
+//TODO: find out test cases which fail for these particular scenarios
+
+See into OneUse::has_suggested_header, when it is set
+
+It is a little bit strange that in CalculateIwyuForForwardDeclareUse we emit
+> Ignoring fwd-decl use of Impl (tests/mirror_objc.h:4:3): have definition at tests/mirror_objc-i1.h:1:7
+because we actually not ignoring it later
+
+Crude outline:
+	Class as superclass needs import
+	Class as ivar needs fwd-declare
+		don't add one if there is already fwd-declare
+	Class as method argument/return type needs fwd-declare
+	Same for protocols
+	Implementation files
+		need class when call some method on its instance
+		don't need class if just pass around variable
+
