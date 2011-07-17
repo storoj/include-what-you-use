@@ -32,6 +32,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclBase.h"
+#include "clang/AST/DeclObjC.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/Basic/SourceLocation.h"
 
@@ -49,6 +50,7 @@ using clang::FunctionDecl;
 using clang::InclusionDirective;
 using clang::NamedDecl;
 using clang::NamespaceDecl;
+using clang::ObjCInterfaceDecl;
 using clang::RecordDecl;
 using clang::SourceLocation;
 using clang::SourceRange;
@@ -374,7 +376,8 @@ string PrintForwardDeclare(const NamedDecl* decl,
     return tpl_params_and_kind + " " + fake->qual_name() + ";";
   }
 
-  CHECK_((isa<RecordDecl>(decl) || isa<TemplateDecl>(decl)) &&
+  CHECK_((isa<RecordDecl>(decl) || isa<TemplateDecl>(decl) ||
+         isa<ObjCInterfaceDecl>(decl)) &&
          "IWYU only allows forward declaring (possibly template) record types");
 
   std::string fwd_decl = std::string(decl->getName()) + ";";
@@ -432,6 +435,13 @@ string MungedForwardDeclareLineForNontemplates(const RecordDecl* decl) {
   return PrintForwardDeclare(decl, GetKindName(decl), GlobalFlags().cxx17ns);
 }
 
+// Forward-declare for ObjC class, e.g. "@class NSString;"
+string MungedForwardDeclareLineForObjCClass(const ObjCInterfaceDecl* decl) {
+  //TODO(vsapsai): check that really have to hard-code @class. Revise after
+  // protocol forward-declare is implemented
+  return PrintForwardDeclare(decl, "@class", GlobalFlags().cxx17ns);
+}
+
 // Given a TemplateDecl representing a class|struct|union template
 // declaration, return the line that could be put in source code to
 // forward-declare the template, e.g.
@@ -474,6 +484,8 @@ string MungedForwardDeclareLine(const NamedDecl* decl) {
     return MungedForwardDeclareLineForNontemplates(rec_decl);
   else if (const TemplateDecl* template_decl = DynCastFrom(decl))
     return MungedForwardDeclareLineForTemplates(template_decl);
+  else if (const ObjCInterfaceDecl* objc_decl = DynCastFrom(decl))
+    return MungedForwardDeclareLineForObjCClass(objc_decl);
   CHECK_UNREACHABLE_("Unexpected decl type for MungedForwardDeclareLine");
 }
 
@@ -742,6 +754,8 @@ bool DeclCanBeForwardDeclared(const Decl* decl, string* reason) {
 
   if (isa<ClassTemplateDecl>(decl)) {
     // Class templates can always be forward-declared.
+  } else if (isa<ObjCInterfaceDecl>(decl)) {
+    // ObjC Interfaces can always be forward-declared.
   } else if (const auto* record = dyn_cast<RecordDecl>(decl)) {
     // Record decls can be forward-declared unless they denote a lambda
     // expression; these have no type name to forward-declare.
@@ -1098,7 +1112,7 @@ void ProcessForwardDeclare(OneUse* use,
   }
 
   // (A5) If using a nested class, discard this use.
-  if (IsNestedClass(record_decl)) {
+  if (record_decl && IsNestedClass(record_decl)) {
     // iwyu will require the full type of the parent class when it
     // recurses on the qualifier (any use of Foo::Bar requires the
     // full type of Foo).  So if we're forward-declared inside Foo,
@@ -1402,11 +1416,13 @@ void CalculateIwyuForForwardDeclareUse(
   const RecordDecl* record_decl = DynCastFrom(use->decl());
   const ClassTemplateDecl* tpl_decl = DynCastFrom(use->decl());
   const ClassTemplateSpecializationDecl* spec_decl = DynCastFrom(use->decl());
+  const ObjCInterfaceDecl *objc_decl = DynCastFrom(use->decl());
   if (spec_decl)
     tpl_decl = spec_decl->getSpecializedTemplate();
   if (tpl_decl)
     record_decl = tpl_decl->getTemplatedDecl();
-  CHECK_(record_decl && "Non-records should have been handled already");
+  CHECK_((record_decl || objc_decl) &&
+    "Non-records and non-ObjC classes should have been handled already");
 
   // If this record is defined in one of the desired_includes, mark that
   // fact.  Also if it's defined in one of the actual_includes.

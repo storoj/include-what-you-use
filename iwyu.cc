@@ -3898,7 +3898,7 @@ class IwyuAstConsumer
 
   bool VisitObjCInterfaceDecl(clang::ObjCInterfaceDecl* interfaceDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
-    if (const clang::ObjCInterfaceDecl* superClassDecl = 
+    if (const clang::ObjCInterfaceDecl* superClassDecl =
         interfaceDecl->getSuperClass()) {
       ReportDeclUse(CurrentLoc(), superClassDecl);
     }
@@ -4061,6 +4061,21 @@ class IwyuAstConsumer
     }
 
     return Base::VisitTemplateSpecializationType(type);
+  }
+
+  //!!!: almost the same as VisitTagType(), only not finished and without
+  // elaboration & namespace stuff
+  bool VisitObjCInterfaceType(clang::ObjCInterfaceType* type) {
+    if (CanIgnoreCurrentASTNode())  return true;
+
+    // If we're forward-declarable, then no complicated checking is
+    // needed: just forward-declare.
+    if (CanForwardDeclareType(current_ast_node())) {
+      current_ast_node()->set_in_forward_declare_context(true);
+      ReportDeclForwardDeclareUse(CurrentLoc(), type->getDecl());
+    }
+
+    return Base::VisitObjCInterfaceType(type);
   }
 
   // --- Visitors defined by BaseASTVisitor (not RecursiveASTVisitor).

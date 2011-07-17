@@ -30,6 +30,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclBase.h"
 #include "clang/AST/DeclCXX.h"
+#include "clang/AST/DeclObjC.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/NestedNameSpecifier.h"
@@ -84,7 +85,10 @@ using clang::MemberExpr;
 using clang::MemberPointerType;
 using clang::NamedDecl;
 using clang::NestedNameSpecifier;
+using clang::NestedNameSpecifierLoc;
+using clang::ObjCInterfaceDecl;
 using clang::ObjCObjectType;
+using clang::ObjCObjectPointerType;
 using clang::OverloadExpr;
 using clang::PointerType;
 using clang::QualType;
@@ -660,6 +664,8 @@ const NamedDecl* GetDefinitionForClass(const Decl* decl) {
           return tpl_decl->getTemplatedDecl()->getDefinition();
       }
     }
+  } else if (const ObjCInterfaceDecl* as_objc_class = DynCastFrom(decl)) {
+    return as_objc_class->getDefinition();
   }
   return nullptr;
 }
@@ -676,6 +682,8 @@ SourceRange GetSourceRangeOfClassDecl(const Decl* decl) {
     return tag_decl->getSourceRange();
   if (const TemplateDecl* tpl_decl = DynCastFrom(decl))
     return tpl_decl->getSourceRange();
+  if (const ObjCInterfaceDecl* objc_decl = DynCastFrom(decl))
+    return objc_decl->getSourceRange();
   CHECK_UNREACHABLE_("Cannot get source range for this decl type");
 }
 
@@ -1179,7 +1187,10 @@ bool InvolvesTypeForWhich(const Type* type,
 
 bool IsPointerOrReferenceAsWritten(const Type* type) {
   type = RemoveElaboration(type);
-  return isa<PointerType>(type) || isa<LValueReferenceType>(type);
+  return
+      isa<PointerType>(type) ||
+      isa<LValueReferenceType>(type) ||
+      isa<ObjCObjectPointerType>(type);
 }
 
 const Type* RemovePointersAndReferencesAsWritten(const Type* type) {
