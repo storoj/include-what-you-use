@@ -3,6 +3,10 @@ Investigate if IWYU produces forward declarations both in .h file and in .cc
 GetClassRedecls is empty set for ObjCInterfaceDecl, see what consequences it can cause
 GetDefinitionForClass. Looks like as result we set is_iwyu_violation_ to true and print unnecessary warning message
 //TODO: find out test cases which fail for these particular scenarios
+Fix ImportedClass needs a declaration, but does not provide or directly #include one.
+
+Implement OneUse::suggested_inclusion_kind(). It may depend on public headers, decl_filepath
+Check by unit test that fix_include works correctly with #import
 
 See into OneUse::has_suggested_header, when it is set
 
