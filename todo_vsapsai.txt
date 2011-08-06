@@ -1,7 +1,7 @@
 Investigate if IWYU produces forward declarations both in .h file and in .cc
 
-GetClassRedecls is empty set for ObjCInterfaceDecl, see what consequences it can cause
-GetDefinitionForClass. Looks like as result we set is_iwyu_violation_ to true and print unnecessary warning message
+GetClassRedecls is empty set for ObjCInterfaceDecl, see what consequences it can cause, most likely existing forward declarations are ignored
+GetDefinitionForClass. Problem with returned fwd-decl is described below, most likely it may result that forward declaration is preferred over @interface
 //TODO: find out test cases which fail for these particular scenarios
 fwd-decl problems:
 	in ObjC "Found forward-declare" is not called
