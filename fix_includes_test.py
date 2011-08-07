@@ -4245,6 +4245,29 @@ int main() { return 0; }
     self.ProcessAndTest(iwyu_output, cmdline_files=['changed.cc'],
                         cwd='/project/src')
 
+  def testImportDirective(self):
+    """Tests that ObjC-specific #import directive doesn't confuse fix_includes"""
+    infile = """\
+// Copyright 2011
+
+#import <objc/Object.h>
+#import "notused.h" ///-
+
+int main() { return 0; }
+"""
+    iwyu_output = """\
+use_import_directive should add these lines:
+
+use_import_directive should remove these lines:
+- #import "notused.h"  // lines 4-4
+
+The full include-list for use_import_directive:
+#import <objc/Object.h>
+---
+"""
+    self.RegisterFileContents({'use_import_directive': infile})
+    self.ProcessAndTest(iwyu_output, expected_num_modified_files=1)
+
   def testMain(self):
     """Make sure calling main doesn't crash.  Inspired by a syntax-error bug."""
     # Give an empty stdin so we don't actually try to parse anything.
