@@ -4,10 +4,11 @@ GetClassRedecls is empty set for ObjCInterfaceDecl, see what consequences it can
 GetDefinitionForClass. Problem with returned fwd-decl is described below, most likely it may result that forward declaration is preferred over @interface
 //TODO: find out test cases which fail for these particular scenarios
 fwd-decl problems:
-	in ObjC "Found forward-declare" is not called
 	different fwd-decl handling:
 		C++: TagType->getDecl() returns actual declaration, not fwd-decl, which is then replaced by fwd-decl as redecl in CalculateIwyuForForwardDeclareUse
 		ObjC: ObjCInterfaceType->getDecl() can return fwd-decl, which is then handled like definition by GetDefinitionForClass called in CalculateIwyuForForwardDeclareUse
+	multiple forward declarations in the same line
+	forward declaration(s) on multiple lines
 
 Implement OneUse::suggested_inclusion_kind(). It may depend on public headers, decl_filepath
 Check by unit test that fix_include works correctly with #import

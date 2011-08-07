@@ -593,7 +593,8 @@ void IwyuFileInfo::AddInclude(const clang::FileEntry* includee,
 void IwyuFileInfo::AddForwardDeclare(const clang::NamedDecl* fwd_decl,
                                      bool definitely_keep_fwd_decl) {
   CHECK_(fwd_decl && "forward_declare_decl unexpectedly nullptr");
-  CHECK_((isa<ClassTemplateDecl>(fwd_decl) || isa<RecordDecl>(fwd_decl))
+  CHECK_((isa<ClassTemplateDecl>(fwd_decl) || isa<RecordDecl>(fwd_decl)
+          || isa<ObjCInterfaceDecl>(fwd_decl))
          && "Can only forward declare classes and class templates");
   lines_.push_back(OneIncludeOrForwardDeclareLine(fwd_decl));
   lines_.back().set_present();

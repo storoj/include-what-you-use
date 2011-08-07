@@ -3896,15 +3896,26 @@ class IwyuAstConsumer
     return Base::VisitUsingDirectiveDecl(decl);
   }
 
+  // ObjCInterfaceDecl - Represents an ObjC class declaration. Require full use
+  // of superclass
   bool VisitObjCInterfaceDecl(clang::ObjCInterfaceDecl* interfaceDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
-    if (const clang::ObjCInterfaceDecl* superClassDecl =
-        interfaceDecl->getSuperClass()) {
-      ReportDeclUse(CurrentLoc(), superClassDecl);
+
+    if (interfaceDecl->isThisDeclarationADefinition()) {
+        if (const clang::ObjCInterfaceDecl* superClassDecl =
+                interfaceDecl->getSuperClass()) {
+            ReportDeclUse(CurrentLoc(), superClassDecl);
+        }
+    } else {
+        preprocessor_info().FileInfoFor(CurrentFileEntry())->AddForwardDeclare(
+                interfaceDecl, false);
     }
     return Base::VisitObjCInterfaceDecl(interfaceDecl);
   }
 
+  // ObjCImplementationDecl - Represents a class definition - this is where
+  // method definitions are specified. Requires full use of corresponding
+  // @interface which usually is declared in associated .h file
   bool VisitObjCImplementationDecl(clang::ObjCImplementationDecl* impDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
     ReportDeclUse(CurrentLoc(), impDecl->getClassInterface());

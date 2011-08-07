@@ -682,8 +682,9 @@ SourceRange GetSourceRangeOfClassDecl(const Decl* decl) {
     return tag_decl->getSourceRange();
   if (const TemplateDecl* tpl_decl = DynCastFrom(decl))
     return tpl_decl->getSourceRange();
-  if (const ObjCInterfaceDecl* objc_decl = DynCastFrom(decl))
+  if (const ObjCInterfaceDecl* objc_decl = DynCastFrom(decl)) {
     return objc_decl->getSourceRange();
+  }
   CHECK_UNREACHABLE_("Cannot get source range for this decl type");
 }
 
