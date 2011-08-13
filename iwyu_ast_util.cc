@@ -1037,6 +1037,15 @@ set<const clang::NamedDecl*> GetNonclassRedecls(const clang::NamedDecl* decl) {
 }
 
 set<const NamedDecl*> GetClassRedecls(const NamedDecl* decl) {
+  // ObjCInterfaceDecl isn't redeclarable, that's why in this case the only
+  // redecl is decl itself
+  const ObjCInterfaceDecl* objc_class_decl = DynCastFrom(decl);
+  if (objc_class_decl) {
+    set<const NamedDecl*> redecls;
+    redecls.insert(objc_class_decl);
+    return redecls;
+  }
+  // handle redeclarable declarations
   const RecordDecl* record_decl = DynCastFrom(decl);
   const ClassTemplateDecl* tpl_decl = DynCastFrom(decl);
   if (tpl_decl)

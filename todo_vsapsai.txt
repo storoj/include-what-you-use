@@ -1,12 +1,10 @@
 Investigate if IWYU produces forward declarations both in .h file and in .cc
 
-GetClassRedecls is empty set for ObjCInterfaceDecl, see what consequences it can cause, most likely existing forward declarations are ignored
-GetDefinitionForClass. Problem with returned fwd-decl is described below, most likely it may result that forward declaration is preferred over @interface
-//TODO: find out test cases which fail for these particular scenarios
+test that unused declaration is still discarded when definition is visible
+test that declaration in the same file isn't forward declared
+test that forward declaration in discarded file is ignored
+test that forward declaration in full-use file stays
 fwd-decl problems:
-	different fwd-decl handling:
-		C++: TagType->getDecl() returns actual declaration, not fwd-decl, which is then replaced by fwd-decl as redecl in CalculateIwyuForForwardDeclareUse
-		ObjC: ObjCInterfaceType->getDecl() can return fwd-decl, which is then handled like definition by GetDefinitionForClass called in CalculateIwyuForForwardDeclareUse
 	multiple forward declarations in the same line
 	forward declaration(s) on multiple lines
 

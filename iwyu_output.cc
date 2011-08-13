@@ -1422,7 +1422,12 @@ void CalculateIwyuForForwardDeclareUse(
     tpl_decl = spec_decl->getSpecializedTemplate();
   if (tpl_decl)
     record_decl = tpl_decl->getTemplatedDecl();
-  CHECK_((record_decl || objc_decl) &&
+  // class_decl is either C++ class decl or ObjC class interface decl
+  const NamedDecl* class_decl = record_decl;
+  if (!class_decl) {
+    class_decl = objc_decl;
+  }
+  CHECK_(class_decl &&
     "Non-records and non-ObjC classes should have been handled already");
 
   // If this record is defined in one of the desired_includes, mark that
@@ -1451,7 +1456,7 @@ void CalculateIwyuForForwardDeclareUse(
 
   // We also want to know if *any* redecl of this record is defined
   // in the same file as the use (and before it).
-  const set<const NamedDecl*>& redecls = GetClassRedecls(record_decl);
+  const set<const NamedDecl*>& redecls = GetClassRedecls(class_decl);
   for (const NamedDecl* redecl : redecls) {
     if (DeclIsVisibleToUseInSameFile(redecl, *use)) {
       same_file_decl = redecl;
