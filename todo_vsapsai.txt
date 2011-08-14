@@ -1,6 +1,5 @@
 Investigate if IWYU produces forward declarations both in .h file and in .cc
 
-test that unused declaration is still discarded when definition is visible
 test that declaration in the same file isn't forward declared
 test that forward declaration in discarded file is ignored
 test that forward declaration in full-use file stays
