@@ -1136,13 +1136,23 @@ void ProcessForwardDeclare(OneUse* use,
   // (A6) If a definition exists earlier in this file, discard this use.
   // Note: for the 'earlier' checks, what matters is the *instantiation*
   // location.
-  const set<const NamedDecl*> redecls = GetClassRedecls(record_decl);
+  const ObjCInterfaceDecl* objc_decl = DynCastFrom(use->decl());
+  const NamedDecl* class_decl = record_decl;
+  if (!class_decl) {
+    class_decl = objc_decl;
+  }
+  const set<const NamedDecl*> redecls = GetClassRedecls(class_decl);
   for (const NamedDecl* redecl : redecls) {
-    CHECK_(isa<RecordDecl>(redecl) &&
+    CHECK_((isa<RecordDecl>(redecl) || isa<ObjCInterfaceDecl>(redecl)) &&
            "GetClassRedecls has redecls of wrong type");
-    const SourceLocation defined_loc = GetLocation(redecl);
-    if (cast<RecordDecl>(redecl)->isCompleteDefinition() &&
-        DeclIsVisibleToUseInSameFile(redecl, *use)) {
+    bool isDefinition = false;
+    if (const RecordDecl* as_record = DynCastFrom(redecl)) {
+      isDefinition = as_record->isCompleteDefinition();
+    } else if (const ObjCInterfaceDecl* as_objc_class = DynCastFrom(redecl)) {
+      isDefinition = as_objc_class->isThisDeclarationADefinition();
+    }
+    if (isDefinition && DeclIsVisibleToUseInSameFile(redecl, *use)) {
+      const SourceLocation defined_loc = GetLocation(redecl);
       VERRS(6) << "Ignoring fwd-decl use of " << use->symbol_name() << " ("
                << use->PrintableUseLoc()
                << "): dfn is present: " << PrintableLoc(defined_loc) << "\n";
