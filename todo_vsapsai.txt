@@ -1,6 +1,5 @@
 Investigate if IWYU produces forward declarations both in .h file and in .cc
 
-test that declaration in the same file isn't forward declared
 test that forward declaration in discarded file is ignored
 test that forward declaration in full-use file stays
 fwd-decl problems:
