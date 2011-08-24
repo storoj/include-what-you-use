@@ -124,6 +124,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclBase.h"
 #include "clang/AST/DeclTemplate.h"
+#include "clang/AST/ExprObjC.h"
 #include "clang/AST/NestedNameSpecifier.h"
 #include "clang/AST/OperationKinds.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -182,6 +183,7 @@ using clang::MemberExpr;
 using clang::NamedDecl;
 using clang::NestedNameSpecifier;
 using clang::NestedNameSpecifierLoc;
+using clang::ObjCMessageExpr;
 using clang::OverloadExpr;
 using clang::ParmVarDecl;
 using clang::PPCallbacks;
@@ -4003,6 +4005,15 @@ class IwyuAstConsumer
     }
 
     return Base::VisitUnaryExprOrTypeTraitExpr(expr);
+  }
+
+  bool VisitObjCMessageExpr(clang::ObjCMessageExpr* message_expr) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    if (const clang::ObjCInterfaceDecl* receiver_decl =
+        message_expr->getReceiverInterface()) {
+      ReportDeclUse(CurrentLoc(), receiver_decl);
+    }
+    return Base::VisitObjCMessageExpr(message_expr);
   }
 
   // --- Visitors of types derived from clang::Type.
