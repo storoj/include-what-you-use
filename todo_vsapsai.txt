@@ -14,6 +14,7 @@ It is a little bit strange that in CalculateIwyuForForwardDeclareUse we emit
 > Ignoring fwd-decl use of Impl (tests/mirror_objc.h:4:3): have definition at tests/mirror_objc-i1.h:1:7
 because we actually not ignoring it later
 
+TODO: see how in clang we arrive to a warning "may not respond to selector"
 call methods for |id| variables, not with nice explicit type
 call category method
 call protocol method
