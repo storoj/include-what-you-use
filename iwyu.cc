@@ -3923,6 +3923,23 @@ class IwyuAstConsumer
     ReportDeclUse(CurrentLoc(), impDecl->getClassInterface());
     return Base::VisitObjCImplementationDecl(impDecl);
   }
+  
+  // ObjCCategoryDecl - Represents a category declaration. Requires full use of
+  // extended class
+  bool VisitObjCCategoryDecl(clang::ObjCCategoryDecl* categoryDecl) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    ReportDeclUse(CurrentLoc(), categoryDecl->getClassInterface());
+    return Base::VisitObjCCategoryDecl(categoryDecl);
+  }
+
+  // ObjCCategoryImplDecl - An object of this class encapsulates a category
+  // @implementation declaration. Like ObjCImplementationDecl requires full use
+  // of corresponding @interface.
+  bool VisitObjCCategoryImplDecl(clang::ObjCCategoryImplDecl* implDecl) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    ReportDeclUse(CurrentLoc(), implDecl->getCategoryDecl());
+    return Base::VisitObjCCategoryImplDecl(implDecl);
+  }
 
   // If you say 'typedef Foo Bar', then clients can use Bar however
   // they want without having to worry about #including anything
