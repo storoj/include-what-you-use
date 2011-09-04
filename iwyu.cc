@@ -123,6 +123,7 @@
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclBase.h"
+#include "clang/AST/DeclObjC.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprObjC.h"
 #include "clang/AST/NestedNameSpecifier.h"
@@ -184,6 +185,7 @@ using clang::NamedDecl;
 using clang::NestedNameSpecifier;
 using clang::NestedNameSpecifierLoc;
 using clang::ObjCMessageExpr;
+using clang::ObjCProtocolList;
 using clang::OverloadExpr;
 using clang::ParmVarDecl;
 using clang::PPCallbacks;
@@ -3898,6 +3900,17 @@ class IwyuAstConsumer
     return Base::VisitUsingDirectiveDecl(decl);
   }
 
+  // Helper method to report full use of protocol list, which are encountered in
+  // classes, categories, protocols
+  void ReportProtocolListUse(SourceLocation used_loc,
+                             ObjCProtocolList::iterator protocol_begin,
+                             ObjCProtocolList::iterator protocol_end) {
+    for (ObjCProtocolList::iterator it = protocol_begin; it != protocol_end;
+         ++it) {
+      ReportDeclUse(used_loc, *it);
+    }
+  }
+
   // ObjCInterfaceDecl - Represents an ObjC class declaration. Require full use
   // of superclass
   bool VisitObjCInterfaceDecl(clang::ObjCInterfaceDecl* interfaceDecl) {
@@ -3912,6 +3925,8 @@ class IwyuAstConsumer
         preprocessor_info().FileInfoFor(CurrentFileEntry())->AddForwardDeclare(
                 interfaceDecl, false);
     }
+    ReportProtocolListUse(CurrentLoc(), interfaceDecl->protocol_begin(),
+                          interfaceDecl->protocol_end());
     return Base::VisitObjCInterfaceDecl(interfaceDecl);
   }
 
@@ -3929,6 +3944,8 @@ class IwyuAstConsumer
   bool VisitObjCCategoryDecl(clang::ObjCCategoryDecl* categoryDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
     ReportDeclUse(CurrentLoc(), categoryDecl->getClassInterface());
+    ReportProtocolListUse(CurrentLoc(), categoryDecl->protocol_begin(),
+                          categoryDecl->protocol_end());
     return Base::VisitObjCCategoryDecl(categoryDecl);
   }
 
@@ -3939,6 +3956,15 @@ class IwyuAstConsumer
     if (CanIgnoreCurrentASTNode())  return true;
     ReportDeclUse(CurrentLoc(), implDecl->getCategoryDecl());
     return Base::VisitObjCCategoryImplDecl(implDecl);
+  }
+
+  // ObjCProtocolDecl - Represents a protocol declaration. Requires full use of
+  // "superprotocols"
+  bool VisitObjCProtocolDecl(clang::ObjCProtocolDecl* protocolDecl) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    ReportProtocolListUse(CurrentLoc(), protocolDecl->protocol_begin(),
+                          protocolDecl->protocol_end());
+    return Base::VisitObjCProtocolDecl(protocolDecl);
   }
 
   // If you say 'typedef Foo Bar', then clients can use Bar however
