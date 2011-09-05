@@ -3967,6 +3967,22 @@ class IwyuAstConsumer
     return Base::VisitObjCProtocolDecl(protocolDecl);
   }
 
+  bool VisitObjCPropertyDecl(clang::ObjCPropertyDecl* propertyDecl) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    if (const Type* propertyType = propertyDecl->getType().getTypePtrOrNull()) {
+      const clang::ObjCObjectPointerType* objCPointerType =
+          propertyType->getAsObjCInterfacePointerType();
+      if (objCPointerType) {
+        const clang::ObjCInterfaceDecl* interfaceDecl =
+            objCPointerType->getInterfaceDecl();
+        if (interfaceDecl) {
+          ReportDeclForwardDeclareUse(CurrentLoc(), interfaceDecl);
+        }
+      }
+    }
+    return Base::VisitObjCPropertyDecl(propertyDecl);
+  }
+
   // If you say 'typedef Foo Bar', then clients can use Bar however
   // they want without having to worry about #including anything
   // except you.  That puts you on the hook for all the #includes that
@@ -4138,8 +4154,10 @@ class IwyuAstConsumer
     if (CanForwardDeclareType(current_ast_node())) {
       current_ast_node()->set_in_forward_declare_context(true);
       ReportDeclForwardDeclareUse(CurrentLoc(), type->getDecl());
+      return Base::VisitObjCInterfaceType(type);
     }
 
+    CHECK_(false && "Fail hard and early. VisitObjCInterfaceType");
     return Base::VisitObjCInterfaceType(type);
   }
 

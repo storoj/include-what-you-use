@@ -1,4 +1,5 @@
 Investigate if IWYU produces forward declarations both in .h file and in .cc
+	if forward declaration in .h file is good enough to be used in .cc
 
 test that forward declaration in discarded file is ignored
 test that forward declaration in full-use file stays
@@ -20,6 +21,10 @@ call category method
 call protocol method
 call method declared in superclass
 call method declared in superclass category (need both class and category?)
+synthesize property (it implies retain, release, copy are called for property type. Still need to decide if need the entire class or only class which contains retain, release, copy i.e. NSObject)
+
+nil usage: "nil is defined in <objc/objc.h>, which isn't directly #included."
+TODO: test struct property, e.g. @property (assign) NSSize frame;
 
 Crude outline:
 	Class as superclass needs import
