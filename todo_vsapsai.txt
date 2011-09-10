@@ -40,3 +40,4 @@ Clang requests:
 	const methods for ObjCClassDecl
 	more similar interfaces for ObjCClassDecl and ObjCForwardProtocolDecl
 	source range for ObjCForwardProtocolDecl, end locations for forward declarations (see |fwd-decl problems|)
+	traverse ObjCPropertyDecl's type automatically. TODO: check if it can be done inside IWYU

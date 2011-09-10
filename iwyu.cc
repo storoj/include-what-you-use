@@ -184,8 +184,10 @@ using clang::MemberExpr;
 using clang::NamedDecl;
 using clang::NestedNameSpecifier;
 using clang::NestedNameSpecifierLoc;
+using clang::ObjCInterfaceDecl;
 using clang::ObjCInterfaceType;
 using clang::ObjCMessageExpr;
+using clang::ObjCObjectPointerType;
 using clang::ObjCObjectType;
 using clang::ObjCProtocolList;
 using clang::OverloadExpr;
@@ -3991,17 +3993,45 @@ class IwyuAstConsumer
     return Base::VisitObjCProtocolDecl(protocolDecl);
   }
 
+  void ReportQualifiedProtocolsForwardDeclareUse(
+      SourceLocation used_loc, const ObjCObjectType* objcObjectType) {
+    CHECK_(objcObjectType);
+    for (const auto &protocolDecl : objcObjectType->quals()) {
+      ReportDeclForwardDeclareUse(used_loc, protocolDecl);
+    }
+  }
+
   bool VisitObjCPropertyDecl(clang::ObjCPropertyDecl* propertyDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
     if (const Type* propertyType = propertyDecl->getType().getTypePtrOrNull()) {
-      const clang::ObjCObjectPointerType* objCPointerType =
+      // ObjCObjectPointerType and ObjCObjectType are not independent, but lets
+      // keep separate logic for interface and protocol list
+      //
+      // forward declare interface pointer
+      const ObjCObjectPointerType* objCPointerType =
           propertyType->getAsObjCInterfacePointerType();
       if (objCPointerType) {
-        const clang::ObjCInterfaceDecl* interfaceDecl =
+        const ObjCInterfaceDecl* interfaceDecl =
             objCPointerType->getInterfaceDecl();
         if (interfaceDecl) {
           ReportDeclForwardDeclareUse(CurrentLoc(), interfaceDecl);
         }
+      }
+      // forward declare protocols in protocol list
+      const ObjCObjectPointerType* protocolsContainer = objCPointerType;
+      // -- try as ObjCQualifiedIdType
+      if (!protocolsContainer) {
+        protocolsContainer = propertyType->getAsObjCQualifiedIdType();
+      }
+      // -- try as ObjCQualifiedClassType
+      if (!protocolsContainer) {
+        protocolsContainer = propertyType->getAsObjCQualifiedClassType();
+      }
+      CHECK_(!propertyType->isObjCQualifiedInterfaceType()
+             && "Unhandled possible protocol container.");
+      if (protocolsContainer) {
+        ReportQualifiedProtocolsForwardDeclareUse(CurrentLoc(),
+            protocolsContainer->getObjectType());
       }
     }
     return Base::VisitObjCPropertyDecl(propertyDecl);
@@ -4183,12 +4213,7 @@ class IwyuAstConsumer
 
   bool VisitObjCObjectType(clang::ObjCObjectType* type) {
     if (CanIgnoreCurrentASTNode())  return true;
-    SourceLocation currentLoc = CurrentLoc();
-    // forward declare protocols in protocol list
-    for (ObjCObjectType::qual_iterator it = type->qual_begin();
-         it != type->qual_end(); ++it) {
-      ReportDeclForwardDeclareUse(currentLoc, *it);
-    }
+    ReportQualifiedProtocolsForwardDeclareUse(CurrentLoc(), type);
     return Base::VisitObjCObjectType(type);
   }
 

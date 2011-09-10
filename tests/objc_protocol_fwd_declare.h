@@ -17,11 +17,13 @@
 #import "tests/objc_protocol.h"
 @class ImportedClass;
 @protocol BarProtocol;
+@protocol ClassProtocol;
 
 @interface Foo : Object {
  @private
   id <FooProtocol> fooVar;
   ImportedClass <BarProtocol> *barVar;
+  Class <ClassProtocol> classVar;
 }
 @end
 
@@ -36,7 +38,8 @@ tests/objc_protocol_fwd_declare.h should remove these lines:
 The full include-list for tests/objc_protocol_fwd_declare.h:
 #import <objc/Object.h>  // for Object
 @class ImportedClass;  // lines XX-XX
-@protocol BarProtocol; // lines XX-XX
+@protocol BarProtocol;  // lines XX-XX
+@protocol ClassProtocol;  // lines XX-XX
 @protocol FooProtocol;
 
 ***** IWYU_SUMMARY */
