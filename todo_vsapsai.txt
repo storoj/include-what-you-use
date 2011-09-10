@@ -36,3 +36,7 @@ Crude outline:
 		need class when call some method on its instance
 		don't need class if just pass around variable
 
+Clang requests:
+	const methods for ObjCClassDecl
+	more similar interfaces for ObjCClassDecl and ObjCForwardProtocolDecl
+	source range for ObjCForwardProtocolDecl, end locations for forward declarations (see |fwd-decl problems|)

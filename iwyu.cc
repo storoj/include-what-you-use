@@ -184,7 +184,9 @@ using clang::MemberExpr;
 using clang::NamedDecl;
 using clang::NestedNameSpecifier;
 using clang::NestedNameSpecifierLoc;
+using clang::ObjCInterfaceType;
 using clang::ObjCMessageExpr;
+using clang::ObjCObjectType;
 using clang::ObjCProtocolList;
 using clang::OverloadExpr;
 using clang::ParmVarDecl;
@@ -2608,6 +2610,23 @@ class IwyuBaseAstVisitor : public BaseAstVisitor<Derived> {
     // Read past elaborations like 'class' keyword or namespaces.
     ast_node = MostElaboratedAncestor(ast_node);
 
+    // Usually ObjC class type is ObjCInterfaceType inside ObjCObjectPointerType
+    // But if type contains protocol list, e.g. NSObject<SomeProtocol>*, then
+    // AST looks like
+    // ObjCObjectPointerType
+    //   ObjCObjectType
+    //     ObjCInterfaceType
+    // Additional ObjCObjectType does not make ObjCInterface not forward
+    // declarable, that's why we skip ObjCObjectType.
+    if (ast_node->IsA<ObjCInterfaceType>() &&
+        ast_node->ParentIsA<ObjCObjectType>()) {
+      ast_node = ast_node->parent();
+      const ObjCObjectType* protocol_container =
+          ast_node->GetAs<ObjCObjectType>();
+      CHECK_(!protocol_container->qual_empty() &&
+          "Additional ObjCObjectType should be caused only by non-empty protocol list.");
+    }
+
     // Now there are two options: either we have a type or we have a declaration
     // involving a type.
     const Type* parent_type = ast_node->GetParentAs<Type>();
@@ -3962,8 +3981,13 @@ class IwyuAstConsumer
   // "superprotocols"
   bool VisitObjCProtocolDecl(clang::ObjCProtocolDecl* protocolDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
-    ReportProtocolListUse(CurrentLoc(), protocolDecl->protocol_begin(),
-                          protocolDecl->protocol_end());
+    if (protocolDecl->isThisDeclarationADefinition()) {
+        ReportProtocolListUse(CurrentLoc(), protocolDecl->protocol_begin(),
+                protocolDecl->protocol_end());
+    } else {
+        preprocessor_info().FileInfoFor(CurrentFileEntry())->AddForwardDeclare(
+                protocolDecl, false);
+    }
     return Base::VisitObjCProtocolDecl(protocolDecl);
   }
 
@@ -4144,8 +4168,7 @@ class IwyuAstConsumer
     return Base::VisitTemplateSpecializationType(type);
   }
 
-  //!!!: almost the same as VisitTagType(), only not finished and without
-  // elaboration & namespace stuff
+  // similar to VisitTagType(), but ObjC-specific
   bool VisitObjCInterfaceType(clang::ObjCInterfaceType* type) {
     if (CanIgnoreCurrentASTNode())  return true;
 
@@ -4154,11 +4177,25 @@ class IwyuAstConsumer
     if (CanForwardDeclareType(current_ast_node())) {
       current_ast_node()->set_in_forward_declare_context(true);
       ReportDeclForwardDeclareUse(CurrentLoc(), type->getDecl());
-      return Base::VisitObjCInterfaceType(type);
+    } else {
+      //vsapsai: not sure about this assert, just want to know immediately when
+      // it is violated
+      CHECK_(false &&
+          "ObjC class encountered as type should be always forward declarable");
     }
 
-    CHECK_(false && "Fail hard and early. VisitObjCInterfaceType");
     return Base::VisitObjCInterfaceType(type);
+  }
+
+  bool VisitObjCObjectType(clang::ObjCObjectType* type) {
+    if (CanIgnoreCurrentASTNode())  return true;
+    SourceLocation currentLoc = CurrentLoc();
+    // forward declare protocols in protocol list
+    for (ObjCObjectType::qual_iterator it = type->qual_begin();
+         it != type->qual_end(); ++it) {
+      ReportDeclForwardDeclareUse(currentLoc, *it);
+    }
+    return Base::VisitObjCObjectType(type);
   }
 
   // --- Visitors defined by BaseASTVisitor (not RecursiveASTVisitor).

@@ -17,10 +17,11 @@
 #import <objc/Object.h>
 
 @class ImportedClass;
+@protocol FooProtocol;
 
 @interface C : Object {
  @private
-  ImportedClass *var;
+  ImportedClass <FooProtocol> *var;
 }
 @end
 

@@ -86,9 +86,11 @@ using clang::MemberPointerType;
 using clang::NamedDecl;
 using clang::NestedNameSpecifier;
 using clang::NestedNameSpecifierLoc;
+using clang::ObjCContainerDecl;
 using clang::ObjCInterfaceDecl;
 using clang::ObjCObjectType;
 using clang::ObjCObjectPointerType;
+using clang::ObjCProtocolDecl;
 using clang::OverloadExpr;
 using clang::PointerType;
 using clang::QualType;
@@ -666,6 +668,8 @@ const NamedDecl* GetDefinitionForClass(const Decl* decl) {
     }
   } else if (const ObjCInterfaceDecl* as_objc_class = DynCastFrom(decl)) {
     return as_objc_class->getDefinition();
+  } else if (const ObjCProtocolDecl* as_protocol = DynCastFrom(decl)) {
+    return as_protocol->getDefinition();
   }
   return nullptr;
 }
@@ -682,9 +686,8 @@ SourceRange GetSourceRangeOfClassDecl(const Decl* decl) {
     return tag_decl->getSourceRange();
   if (const TemplateDecl* tpl_decl = DynCastFrom(decl))
     return tpl_decl->getSourceRange();
-  if (const ObjCInterfaceDecl* objc_decl = DynCastFrom(decl)) {
+  if (const ObjCContainerDecl* objc_decl = DynCastFrom(decl))
     return objc_decl->getSourceRange();
-  }
   CHECK_UNREACHABLE_("Cannot get source range for this decl type");
 }
 
@@ -1037,13 +1040,12 @@ set<const clang::NamedDecl*> GetNonclassRedecls(const clang::NamedDecl* decl) {
 }
 
 set<const NamedDecl*> GetClassRedecls(const NamedDecl* decl) {
-  // ObjCInterfaceDecl isn't redeclarable, that's why in this case the only
-  // redecl is decl itself
+  // ObjCInterfaceDecl, ObjCProtocolDecl aren't redeclarable, that's why in this
+  // case the only redecl is decl itself
   const ObjCInterfaceDecl* objc_class_decl = DynCastFrom(decl);
-  if (objc_class_decl) {
-    set<const NamedDecl*> redecls;
-    redecls.insert(objc_class_decl);
-    return redecls;
+  const ObjCProtocolDecl* protocol_decl = DynCastFrom(decl);
+  if (objc_class_decl || protocol_decl) {
+    return set<const NamedDecl*>{decl};
   }
   // handle redeclarable declarations
   const RecordDecl* record_decl = DynCastFrom(decl);

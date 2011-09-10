@@ -9,6 +9,7 @@
 
 #import "tests/fwd_decl_full_in_impl.h"
 #import "tests/imported_class.h"
+#import "tests/objc_protocol.h"
 
 @implementation C
 @end
@@ -19,6 +20,7 @@ tests/fwd_decl_full_in_impl.m should add these lines:
 
 tests/fwd_decl_full_in_impl.m should remove these lines:
 - #import "tests/imported_class.h"  // lines XX-XX
+- #import "tests/objc_protocol.h"  // lines XX-XX
 
 The full include-list for tests/fwd_decl_full_in_impl.m:
 #import "tests/fwd_decl_full_in_impl.h"

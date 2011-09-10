@@ -51,6 +51,7 @@ using clang::InclusionDirective;
 using clang::NamedDecl;
 using clang::NamespaceDecl;
 using clang::ObjCInterfaceDecl;
+using clang::ObjCProtocolDecl;
 using clang::RecordDecl;
 using clang::SourceLocation;
 using clang::SourceRange;
@@ -377,7 +378,7 @@ string PrintForwardDeclare(const NamedDecl* decl,
   }
 
   CHECK_((isa<RecordDecl>(decl) || isa<TemplateDecl>(decl) ||
-         isa<ObjCInterfaceDecl>(decl)) &&
+         isa<ObjCInterfaceDecl>(decl) || isa<ObjCProtocolDecl>(decl)) &&
          "IWYU only allows forward declaring (possibly template) record types");
 
   std::string fwd_decl = std::string(decl->getName()) + ";";
@@ -435,11 +436,19 @@ string MungedForwardDeclareLineForNontemplates(const RecordDecl* decl) {
   return PrintForwardDeclare(decl, GetKindName(decl), GlobalFlags().cxx17ns);
 }
 
+//vsapsai: I've failed to found how to obtain forward-declare keyword, that's
+// why just hardcode keywords for ObjC class and protocol
+//
 // Forward-declare for ObjC class, e.g. "@class NSString;"
 string MungedForwardDeclareLineForObjCClass(const ObjCInterfaceDecl* decl) {
   //TODO(vsapsai): check that really have to hard-code @class. Revise after
   // protocol forward-declare is implemented
   return PrintForwardDeclare(decl, "@class", GlobalFlags().cxx17ns);
+}
+
+// Forward-declare for ObjC protocol, e.g. "@protocol NSCopying;"
+string MungedForwardDeclareLineForObjCProtocol(const ObjCProtocolDecl* decl) {
+  return PrintForwardDeclare(decl, "@protocol", GlobalFlags().cxx17ns);
 }
 
 // Given a TemplateDecl representing a class|struct|union template
@@ -486,6 +495,8 @@ string MungedForwardDeclareLine(const NamedDecl* decl) {
     return MungedForwardDeclareLineForTemplates(template_decl);
   else if (const ObjCInterfaceDecl* objc_decl = DynCastFrom(decl))
     return MungedForwardDeclareLineForObjCClass(objc_decl);
+  else if (const ObjCProtocolDecl* protocol_decl = DynCastFrom(decl))
+    return MungedForwardDeclareLineForObjCProtocol(protocol_decl);
   CHECK_UNREACHABLE_("Unexpected decl type for MungedForwardDeclareLine");
 }
 
@@ -594,8 +605,9 @@ void IwyuFileInfo::AddForwardDeclare(const clang::NamedDecl* fwd_decl,
                                      bool definitely_keep_fwd_decl) {
   CHECK_(fwd_decl && "forward_declare_decl unexpectedly nullptr");
   CHECK_((isa<ClassTemplateDecl>(fwd_decl) || isa<RecordDecl>(fwd_decl)
-          || isa<ObjCInterfaceDecl>(fwd_decl))
-         && "Can only forward declare classes and class templates");
+          || isa<ObjCInterfaceDecl>(fwd_decl)
+          || isa<ObjCProtocolDecl>(fwd_decl))
+         && "Can only forward declare classes, class templates and protocols");
   lines_.push_back(OneIncludeOrForwardDeclareLine(fwd_decl));
   lines_.back().set_present();
   if (definitely_keep_fwd_decl)
@@ -755,8 +767,8 @@ bool DeclCanBeForwardDeclared(const Decl* decl, string* reason) {
 
   if (isa<ClassTemplateDecl>(decl)) {
     // Class templates can always be forward-declared.
-  } else if (isa<ObjCInterfaceDecl>(decl)) {
-    // ObjC Interfaces can always be forward-declared.
+  } else if (isa<ObjCInterfaceDecl>(decl) || isa<ObjCProtocolDecl>(decl)) {
+    // ObjC Interfaces or ObjC protocols can always be forward-declared.
   } else if (const auto* record = dyn_cast<RecordDecl>(decl)) {
     // Record decls can be forward-declared unless they denote a lambda
     // expression; these have no type name to forward-declare.
@@ -1137,19 +1149,25 @@ void ProcessForwardDeclare(OneUse* use,
   // Note: for the 'earlier' checks, what matters is the *instantiation*
   // location.
   const ObjCInterfaceDecl* objc_decl = DynCastFrom(use->decl());
+  const ObjCProtocolDecl* protocol_decl = DynCastFrom(use->decl());
   const NamedDecl* class_decl = record_decl;
   if (!class_decl) {
     class_decl = objc_decl;
   }
+  if (!class_decl) {
+    class_decl = protocol_decl;
+  }
   const set<const NamedDecl*> redecls = GetClassRedecls(class_decl);
   for (const NamedDecl* redecl : redecls) {
-    CHECK_((isa<RecordDecl>(redecl) || isa<ObjCInterfaceDecl>(redecl)) &&
+    CHECK_((isa<RecordDecl>(redecl) || isa<ObjCInterfaceDecl>(redecl) || isa<ObjCProtocolDecl>(redecl)) &&
            "GetClassRedecls has redecls of wrong type");
     bool isDefinition = false;
     if (const RecordDecl* as_record = DynCastFrom(redecl)) {
       isDefinition = as_record->isCompleteDefinition();
     } else if (const ObjCInterfaceDecl* as_objc_class = DynCastFrom(redecl)) {
       isDefinition = as_objc_class->isThisDeclarationADefinition();
+    } else if (const ObjCProtocolDecl* as_protocol = DynCastFrom(redecl)) {
+      isDefinition = as_protocol->isThisDeclarationADefinition();
     }
     if (isDefinition && DeclIsVisibleToUseInSameFile(redecl, *use)) {
       const SourceLocation defined_loc = GetLocation(redecl);
@@ -1427,18 +1445,23 @@ void CalculateIwyuForForwardDeclareUse(
   const RecordDecl* record_decl = DynCastFrom(use->decl());
   const ClassTemplateDecl* tpl_decl = DynCastFrom(use->decl());
   const ClassTemplateSpecializationDecl* spec_decl = DynCastFrom(use->decl());
-  const ObjCInterfaceDecl *objc_decl = DynCastFrom(use->decl());
+  const ObjCInterfaceDecl* objc_decl = DynCastFrom(use->decl());
+  const ObjCProtocolDecl* protocol_decl = DynCastFrom(use->decl());
   if (spec_decl)
     tpl_decl = spec_decl->getSpecializedTemplate();
   if (tpl_decl)
     record_decl = tpl_decl->getTemplatedDecl();
-  // class_decl is either C++ class decl or ObjC class interface decl
+  // class_decl is either C++ class decl or ObjC class interface decl or ObjC
+  // protocol decl
   const NamedDecl* class_decl = record_decl;
   if (!class_decl) {
     class_decl = objc_decl;
   }
+  if (!class_decl) {
+    class_decl = protocol_decl;
+  }
   CHECK_(class_decl &&
-    "Non-records and non-ObjC classes should have been handled already");
+    "Non-records and non-ObjC classes and protocols should have been handled already");
 
   // If this record is defined in one of the desired_includes, mark that
   // fact.  Also if it's defined in one of the actual_includes.
