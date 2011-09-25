@@ -20,7 +20,7 @@
 /**** IWYU_SUMMARY
 
 tests/move_import.m should add these lines:
-#import "tests/objc_call_instance_method-i1.h"  // for Bar
+#import "tests/objc_call_instance_method-i1.h"
 
 tests/move_import.m should remove these lines:
 

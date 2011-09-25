@@ -7,10 +7,6 @@ fwd-decl problems:
 	multiple forward declarations in the same line
 	forward declaration(s) on multiple lines
 
-Implement OneUse::suggested_inclusion_kind(). It may depend on public headers, decl_filepath
-
-See into OneUse::has_suggested_header, when it is set
-
 It is a little bit strange that in CalculateIwyuForForwardDeclareUse we emit
 > Ignoring fwd-decl use of Impl (tests/mirror_objc.h:4:3): have definition at tests/mirror_objc-i1.h:1:7
 because we actually not ignoring it later
