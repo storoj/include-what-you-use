@@ -1836,7 +1836,7 @@ void CleanupPrefixHeaderIncludes(
       // At this point it's OK if file_entry is nullptr.  It means we've never
       // seen quoted_include.  And that's why it cannot be prefix header.
     } else {
-      const RecordDecl* dfn = GetDefinitionForClass(line.fwd_decl());
+      const NamedDecl* dfn = GetDefinitionForClass(line.fwd_decl());
       file_entry = GetFileEntry(dfn);
     }
     if (IsRemovablePrefixHeader(file_entry, preprocessor_info)) {

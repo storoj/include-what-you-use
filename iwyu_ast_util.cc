@@ -628,7 +628,7 @@ bool HasCovariantReturnType(const CXXMethodDecl* method_decl) {
   return false;
 }
 
-const RecordDecl* GetDefinitionForClass(const Decl* decl) {
+const NamedDecl* GetDefinitionForClass(const Decl* decl) {
   const RecordDecl* as_record = DynCastFrom(decl);
   const ClassTemplateDecl* as_tpl = DynCastFrom(decl);
   if (as_tpl) {  // Convert the template to its underlying class defn.
