@@ -251,6 +251,16 @@ bool CanIgnoreLocation(SourceLocation loc) {
           !ShouldReportIWYUViolationsFor(file_entry_after_macro_expansion));
 }
 
+template <typename T>
+T *decl_before(T *decl, SourceLocation loc) {
+  T *result = decl;
+  while (result && GlobalSourceManager()->isBeforeInTranslationUnit(loc, result->getLocation())) {
+    result = DynCastFrom(result->getPreviousDecl());
+  }
+  return result ?: decl;
+}
+
+
 }  // anonymous namespace
 
 // ----------------------------------------------------------------------
@@ -1656,6 +1666,7 @@ class IwyuBaseAstVisitor : public BaseAstVisitor<Derived> {
 
     // Canonicalize the use location and report the use.
     used_loc = GetCanonicalUseLocation(used_loc, target_decl);
+    target_decl = decl_before(used_decl, used_loc);
     const FileEntry* used_in = GetFileEntry(used_loc);
     preprocessor_info().FileInfoFor(used_in)->ReportForwardDeclareUse(
         used_loc, target_decl, ComputeUseFlags(current_ast_node()),
