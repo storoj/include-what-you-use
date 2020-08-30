@@ -4177,13 +4177,7 @@ class IwyuAstConsumer
     if (CanForwardDeclareType(current_ast_node())) {
       current_ast_node()->set_in_forward_declare_context(true);
       ReportDeclForwardDeclareUse(CurrentLoc(), type->getDecl());
-    } else {
-      //vsapsai: not sure about this assert, just want to know immediately when
-      // it is violated
-      CHECK_(false &&
-          "ObjC class encountered as type should be always forward declarable");
     }
-
     return Base::VisitObjCInterfaceType(type);
   }
 
