@@ -2636,8 +2636,8 @@ class IwyuBaseAstVisitor : public BaseAstVisitor<Derived> {
       ast_node = ast_node->parent();
       const ObjCObjectType* protocol_container =
           ast_node->GetAs<ObjCObjectType>();
-      CHECK_(!protocol_container->qual_empty() &&
-          "Additional ObjCObjectType should be caused only by non-empty protocol list.");
+      /* CHECK_(!protocol_container->qual_empty() && */
+      /*     "Additional ObjCObjectType should be caused only by non-empty protocol list."); */
     }
 
     // Now there are two options: either we have a type or we have a declaration
@@ -4012,39 +4012,31 @@ class IwyuAstConsumer
     }
   }
 
+  const ObjCObjectPointerType* objc_pointer_type(
+      const clang::QualType& type) const {
+    const auto* ptr = type.getTypePtrOrNull();
+    return ptr ? objc_pointer_type(ptr) : nullptr;
+  }
+
+  const ObjCObjectPointerType* objc_pointer_type(
+      const clang::Type* type) const {
+    return type->getAs<ObjCObjectPointerType>();
+  }
+
+  void report_objc_type_use(const clang::QualType& type) {
+    const auto* objcPtr = objc_pointer_type(type);
+    if (objcPtr) {
+      if (const auto *interfaceDecl = objcPtr->getInterfaceDecl())
+        ReportDeclForwardDeclareUse(CurrentLoc(), interfaceDecl);
+
+      ReportQualifiedProtocolsForwardDeclareUse(CurrentLoc(),
+          objcPtr->getObjectType());
+    }
+  }
+
   bool VisitObjCPropertyDecl(clang::ObjCPropertyDecl* propertyDecl) {
     if (CanIgnoreCurrentASTNode())  return true;
-    if (const Type* propertyType = propertyDecl->getType().getTypePtrOrNull()) {
-      // ObjCObjectPointerType and ObjCObjectType are not independent, but lets
-      // keep separate logic for interface and protocol list
-      //
-      // forward declare interface pointer
-      const ObjCObjectPointerType* objCPointerType =
-          propertyType->getAsObjCInterfacePointerType();
-      if (objCPointerType) {
-        const ObjCInterfaceDecl* interfaceDecl =
-            objCPointerType->getInterfaceDecl();
-        if (interfaceDecl) {
-          ReportDeclForwardDeclareUse(CurrentLoc(), interfaceDecl);
-        }
-      }
-      // forward declare protocols in protocol list
-      const ObjCObjectPointerType* protocolsContainer = objCPointerType;
-      // -- try as ObjCQualifiedIdType
-      if (!protocolsContainer) {
-        protocolsContainer = propertyType->getAsObjCQualifiedIdType();
-      }
-      // -- try as ObjCQualifiedClassType
-      if (!protocolsContainer) {
-        protocolsContainer = propertyType->getAsObjCQualifiedClassType();
-      }
-      CHECK_(!propertyType->isObjCQualifiedInterfaceType()
-             && "Unhandled possible protocol container.");
-      if (protocolsContainer) {
-        ReportQualifiedProtocolsForwardDeclareUse(CurrentLoc(),
-            protocolsContainer->getObjectType());
-      }
-    }
+    report_objc_type_use(propertyDecl->getType());
     return Base::VisitObjCPropertyDecl(propertyDecl);
   }
 
@@ -4133,11 +4125,37 @@ class IwyuAstConsumer
 
   bool VisitObjCMessageExpr(clang::ObjCMessageExpr* message_expr) {
     if (CanIgnoreCurrentASTNode())  return true;
+    auto type = message_expr->getReceiverType().getTypePtr();
+    VERRS(6)
+      << "Message Expr inside\n"
+      << "Iface: " << message_expr->getReceiverInterface() << "\n"
+      << "Type: " << type << "\n"
+      << type->getAsObjCQualifiedIdType() << "\n"
+      << type->getAsObjCInterfacePointerType() << "\n"
+      << type->getAsObjCQualifiedClassType() << "\n";
+    auto objc_type = objc_pointer_type(message_expr->getReceiverType());
+
+    if (objc_type) {
+      for (const auto& q : objc_type->quals()) {
+        VERRS(6) << "qual\n";
+        q->dump();
+        ReportDeclUse(CurrentLoc(), q);
+      }
+      VERRS(6) << "iface: " << objc_type->getInterfaceDecl() << "\n";
+      objc_type->getInterfaceDecl()->getOwningModule();
+    }
+
     if (const clang::ObjCInterfaceDecl* receiver_decl =
         message_expr->getReceiverInterface()) {
+      receiver_decl->dumpColor();
       ReportDeclUse(CurrentLoc(), receiver_decl);
     }
     return Base::VisitObjCMessageExpr(message_expr);
+  }
+
+  bool VisitImportDecl(clang::ImportDecl* decl) {
+    decl->getImportedModule()->getUmbrellaHeader();
+    return Base::VisitImportDecl(decl);
   }
 
   // --- Visitors of types derived from clang::Type.
