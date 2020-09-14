@@ -295,4 +295,5 @@ if __name__ == '__main__':
   RegisterFilesForTesting('tests/cxx', '*.cc')
   RegisterFilesForTesting('tests/c', '*.c')
   RegisterFilesForTesting('tests/objc-gnustep', '*.m')
+  RegisterFilesForTesting('tests/objc-apple', '*.m')
   unittest.main(argv=unittest_args)
