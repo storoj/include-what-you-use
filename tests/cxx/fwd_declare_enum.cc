@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: 
+
 // Tests that iwyu does not barf when the user re-declares an enum.
 // ("Forward" declare is not quite the right terminology, since you
 // can only re-declare an enum *after* it's been defined, but it

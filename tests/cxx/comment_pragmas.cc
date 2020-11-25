@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests the pragma-like comment-commands that iwyu recognizes,
 // as described at the top of iwyu_preprocessor.h.
 //

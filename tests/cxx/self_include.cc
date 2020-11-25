@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that we don't crash when a file includes itself.
 
 #ifndef SEEN

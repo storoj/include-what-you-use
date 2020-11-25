@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests computed #includes, i.e. #includes with macros.
 
 #include "tests/cxx/computed_include.h"

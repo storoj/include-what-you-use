@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that we handle correctly the case of templated constructors.
 
 #include "tests/cxx/direct.h"

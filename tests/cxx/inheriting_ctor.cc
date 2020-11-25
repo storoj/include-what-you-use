@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -std=c++11
+
 #include "inheriting_ctor-d1.h"
 
 // IWYU: Derived is defined in .*-i1.h

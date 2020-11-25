@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Test that subdirs are correctly recognized
 
 #include "subdir/direct_subdir.h"

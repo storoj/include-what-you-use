@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that we properly handle the case of include-cycles (header files
 // including themselves, possibly indirectly).  We put all the header files
 // in the /internal/ directory, because those files get automatically mapped.

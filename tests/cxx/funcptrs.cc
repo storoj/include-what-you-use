@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -Wno-unused -I .
+
 // Tests that function pointers make the right claims for involved types.
 // Function pointer expressions come in three flavors:
 //

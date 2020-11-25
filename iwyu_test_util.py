@@ -46,6 +46,10 @@ _ACTUAL_SUMMARY_END_RE = re.compile(r'^---$')
 _ACTUAL_REMOVAL_LIST_START_RE = re.compile(r'.* should remove these lines:$')
 _NODIFFS_RE = re.compile(r'^\((.*?) has correct #includes/fwd-decls\)$')
 
+# This is an ARGS line that specifies launch arguments for a given source file.
+# Example:
+# // ARGS: -Xiwyu --mapping_file=... -I .
+_IWYU_TEST_RUN_ARGS_RE = re.compile(r'^//\s*ARGS:\s*(.*)$')
 
 def _PortableNext(iterator):
   if hasattr(iterator, 'next'):
@@ -398,8 +402,19 @@ def _CompareExpectedAndActualSummaries(expected_summaries, actual_summaries):
   return failures
 
 
+def _GetLaunchArguments(cc_file):
+  """Gets IWYU launch arguments for a source file from its contents."""
+  with open(cc_file) as fh:
+    for line in fh:
+      m = _IWYU_TEST_RUN_ARGS_RE.match(line)
+      if m:
+        return m.group(1)
+      
+  return ''
+
+
 def TestIwyuOnRelativeFile(test_case, cc_file, cpp_files_to_check,
-                           iwyu_flags=None, clang_flags=None, verbose=False):
+                           verbose=False):
   """Checks running IWYU on the given .cc file.
 
   Args:
@@ -407,28 +422,19 @@ def TestIwyuOnRelativeFile(test_case, cc_file, cpp_files_to_check,
     cc_file: The name of the file to test, relative to the current dir.
     cpp_files_to_check: A list of filenames for the files
               to check the diagnostics on, relative to the current dir.
-    iwyu_flags: Extra command-line flags to pass to iwyu.
-    clang_flags: Extra command-line flags to pass to clang, for example
-              "-std=c++11".
     verbose: Whether to display verbose output.
   """
-  iwyu_flags = iwyu_flags or []  # Make sure iwyu_flags is a list.
-  clang_flags = clang_flags or [] # Make sure this is a list
-
+  args = _GetLaunchArguments(cc_file)
   # Require verbose level 3 so that we can verify the individual diagnostics.
   # We allow the level to be overriden by the IWYU_VERBOSE environment
-  # variable, or by iwyu_flags, for easy debugging.  (We put the
+  # variable, or by ARGS line in a source file, for easy debugging.  (We put the
   # envvar-based flag first, so user flags can override it later.)
-  iwyu_flags = ['--verbose=%s' % os.getenv('IWYU_VERBOSE', '3')] + iwyu_flags
-
-  # clang reads iwyu flags after the -Xiwyu clang flag: '-Xiwyu --verbose=6'
-  iwyu_flags = ['-Xiwyu ' + flag for flag in iwyu_flags]
+  args = ('-Xiwyu --verbose=%s ' % os.getenv('IWYU_VERBOSE', '3')) + args
 
   # TODO(csilvers): verify that has exit-status 0.
-  cmd = '%s %s %s %s' % (
+  cmd = '%s %s %s' % (
     _ShellQuote(_GetIwyuPath()),
-    ' '.join(iwyu_flags),
-    ' '.join(clang_flags),
+    args,
     cc_file)
   if verbose:
     print('>>> Running %s' % cmd)

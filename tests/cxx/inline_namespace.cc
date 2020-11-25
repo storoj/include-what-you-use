@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that IWYU never considers a decl inside an inline namespace
 // forward-declarable, and that diagnostics never mention the inline namespace
 // name (xyz::v1).

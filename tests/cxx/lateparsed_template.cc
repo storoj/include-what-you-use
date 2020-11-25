@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -fdelayed-template-parsing -I .
+
 // Tests IWYU handling of function templates when used with the MSVC-compatible
 // -fdelayed-template-parsing flag.
 //

@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests unusual and complex use of template arguments, such as
 // function-proto template arguments, for both classes and functions.
 

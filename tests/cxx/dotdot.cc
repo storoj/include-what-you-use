@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that IWYU path canonicalization helps understand that
 // "tests/cxx/subdir/../indirect.h" and "tests/cxx/indirect.h" are the same
 // file.

@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that we handle correctly identify a[i] as a full use of a.
 
 #include "tests/cxx/direct.h"

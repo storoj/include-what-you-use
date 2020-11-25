@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that IWYU doesn't instantiate unused class template constructor
 // because for certain template arguments some constructors can trigger Clang
 // errors.

@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that we correctly detect iwyu use with member accesses.
 
 #include "tests/cxx/member_expr-d1.h"

@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that we correctly replace forward declares with #includes for
 // items in a system namespace: std or __gnu_cxx or the like.
 

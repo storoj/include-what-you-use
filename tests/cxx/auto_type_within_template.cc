@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -std=c++11
+
 // Tests that IWYU doesn't crash when auto type is within template and has no
 // deduced type.
 

@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -std=c++17 -I .
+
 // Test that iwyu suggests the include for <new> be removed if only
 // built-in functions are used.
 

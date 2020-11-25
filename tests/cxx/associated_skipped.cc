@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // This is a half-way test. It lays out an include graph that would cause an
 // assertion failure in IWYU (issue #738):
 //

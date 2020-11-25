@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// ARGS: -I .
+
 // Tests that when we specialize a template class, we require a declaration
 // of that class.  However, forward-declaring a specialization doesn't
 // require a definition.
