@@ -172,13 +172,27 @@ endif()
 find_package(PythonInterp)
 if(PYTHONINTERP_FOUND)
   enable_testing()
-  add_test(NAME iwyu_tests
-    COMMAND ${PYTHON_EXECUTABLE} run_iwyu_tests.py -- $<TARGET_FILE:include-what-you-use>
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   add_test(NAME fix_includes_test
     COMMAND ${PYTHON_EXECUTABLE} fix_includes_test.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   add_test(NAME iwyu_tool_test
     COMMAND ${PYTHON_EXECUTABLE} iwyu_tool_test.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+  function(GenerateTests suite_name rootdir glob)
+    string(CONCAT glob ${rootdir} "/" ${glob})
+    file(GLOB test_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${glob})
+    foreach (path ${test_files})
+      get_filename_component(filename ${path} NAME_WE)
+      string(CONCAT test_name ${suite_name} "::" ${filename})
+      add_test(NAME ${test_name}
+        COMMAND ${PYTHON_EXECUTABLE} iwyu_test_util.py ${path} --iwyu $<TARGET_FILE:include-what-you-use> --verbose
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+      set_property(TEST ${test_name} PROPERTY LABELS ${suite_name})
+    endforeach()
+  endfunction()
+
+  GenerateTests("c" "tests/c" "*.c")
+  GenerateTests("cxx" "tests/cxx" "*.cc")
+
 endif()

@@ -9,6 +9,8 @@
 #
 ##===----------------------------------------------------------------------===##
 
+from __future__ import print_function
+
 """Utilities for writing tests for IWYU.
 
 This script has been tested with python 2.7, 3.1.3 and 3.2.
@@ -24,7 +26,10 @@ http://diveintopython3.org/porting-code-to-python-3-with-2to3.html
 
 __author__ = 'wan@google.com (Zhanyong Wan)'
 
+from fnmatch import fnmatch
+import argparse
 import difflib
+import glob
 import operator
 import os
 import re
@@ -51,6 +56,11 @@ _NODIFFS_RE = re.compile(r'^\((.*?) has correct #includes/fwd-decls\)$')
 # Example:
 # // IWYU_ARGS: -Xiwyu --mapping_file=... -I .
 _IWYU_TEST_RUN_ARGS_RE = re.compile(r'^//\sIWYU_ARGS:\s(.*)$')
+
+def PosixPath(path):
+    """Normalize Windows path separators to POSIX path separators."""
+    return path.replace('\\', '/')
+
 
 def _PortableNext(iterator):
   if hasattr(iterator, 'next'):
@@ -429,8 +439,7 @@ def _GetLaunchArguments(cc_file):
   return args
 
 
-def TestIwyuOnRelativeFile(test_case, cc_file, cpp_files_to_check,
-                           verbose=False):
+def TestIwyuOnRelativeFile(cc_file, verbose=False):
   """Checks running IWYU on the given .cc file.
 
   Args:
@@ -460,18 +469,54 @@ def TestIwyuOnRelativeFile(test_case, cc_file, cpp_files_to_check,
   if verbose:
     print('>>> Running %s' % cmd)
   output = _GetCommandOutput(cmd)
-  print(''.join(output))
-  sys.stdout.flush()      # don't commingle this output with the failure output
+  if verbose:
+    print(''.join(output))
+    sys.stdout.flush()      # don't commingle this output with the failure output
+
+  # Split full/path/to/foo.cc into full/path/to/foo and .cc.
+  (all_but_extension, extension) = os.path.splitext(cc_file)
+  (dirname, basename) = os.path.split(all_but_extension)
+  # Generate diagnostics on all foo-* files (well, not other
+  # foo-*.cc files, which is not kosher but is legal), in addition
+  # to foo.h (if present) and foo.cc.
+  all_files = (glob.glob('%s-*' % all_but_extension) +
+               glob.glob('%s/*/%s-*' % (dirname, basename)) +
+               glob.glob('%s.h' % all_but_extension) +
+               glob.glob('%s/*/%s.h' % (dirname, basename)))
+  files_to_check = [f for f in all_files if not fnmatch(f, '*%s' % extension)]
+  files_to_check.append(cc_file)
+
+  # IWYU emits summaries with canonicalized filepaths, where all the
+  # directory separators are set to '/'. In order for the testsuite to
+  # correctly match up file summaries, we must canonicalize the filepaths
+  # in the same way here.
+  files_to_check = [PosixPath(f) for f in files_to_check]
 
   expected_diagnostics = _GetMatchingLines(
-      _EXPECTED_DIAGNOSTICS_RE, cpp_files_to_check)
+      _EXPECTED_DIAGNOSTICS_RE, files_to_check)
   failures = _CompareExpectedAndActualDiagnostics(
       _GetExpectedDiagnosticRegexes(expected_diagnostics),
       _GetActualDiagnostics(output))
 
   # Also figure out if the end-of-parsing suggestions match up.
   failures += _CompareExpectedAndActualSummaries(
-      _GetExpectedSummaries(cpp_files_to_check),
+      _GetExpectedSummaries(files_to_check),
       _GetActualSummaries(output))
 
-  test_case.assertTrue(not failures, ''.join(failures))
+  return failures
+
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument('filename')
+  parser.add_argument('-v', '--verbose', action='store_true')
+  parser.add_argument('--iwyu', required=False)
+  args = parser.parse_args()
+
+  _IWYU_PATH = args.iwyu
+
+  failures = TestIwyuOnRelativeFile(args.filename, args.verbose)
+  if failures:
+    if args.verbose:
+      print(''.join(failures), file=sys.stderr)
+    sys.exit(1)
